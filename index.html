@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>跨平台搜尋器</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        :root { --primary: #007bff; --bg: #f4f7f9; --text: #333; }
+        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; padding: 10px; background-color: var(--bg); color: var(--text); margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        /* 標題與按鈕區 */
+        .header-section { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); margin-bottom: 15px; padding-bottom: 10px; }
+        h2 { margin: 0; font-size: 1.4rem; color: var(--primary); }
+
+        /* 輸入區佈局 */
+        .input-group { display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px; background: #ebf3ff; padding: 15px; border-radius: 10px; }
+        @media (min-width: 768px) { .input-group { flex-direction: row; align-items: flex-end; } }
+        
+        .input-item { display: flex; flex-direction: column; gap: 5px; flex: 1; width: 100%; }
+        label { font-size: 0.85rem; font-weight: bold; color: #555; }
+        
+        /* 搜尋框與語音按鈕 */
+        .search-container { display: flex; gap: 8px; width: 100%; align-items: center; }
+        .search-wrapper { position: relative; display: flex; align-items: center; flex: 1; }
+        input[type="text"] { width: 100%; padding: 12px 50px 12px 12px; border: 2px solid var(--primary); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        
+        .voice-btn { position: absolute; right: 5px; background: none; border: none; cursor: pointer; font-size: 24px; padding: 8px; transition: 0.3s; z-index: 5; }
+        .voice-btn.active { color: #dc3545; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* 掃碼按鈕 */
+        .scan-btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 0 15px; height: 48px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; white-space: nowrap; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .scan-btn:active { transform: scale(0.98); }
+
+        /* 掃描器 Modal (滿版蓋台) */
+        #reader-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        #reader { width: 90%; max-width: 500px; background: white; border-radius: 12px; padding: 10px; overflow: hidden; }
+        .close-scan-btn { margin-top: 20px; padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; }
+
+        /* 模式切換開關 */
+        .mode-switch { display: flex; align-items: center; gap: 10px; margin-top: 5px; font-size: 0.9rem; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #ddd; width: fit-content; }
+        .switch-label { font-weight: bold; color: var(--primary); cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        input[type="checkbox"] { transform: scale(1.2); }
+
+        /* 狀態列 */
+        .status-bar { margin-bottom: 15px; padding: 10px; border-radius: 8px; font-size: 0.9rem; background: #fff; border-left: 5px solid #ccc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .success { border-left-color: #28a745; background-color: #f0fff4; }
+        .btn-delete { background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .file-list-tag { display: inline-block; background: #e2e6ea; padding: 2px 6px; border-radius: 4px; margin: 2px; font-size: 0.8rem; color: #555; border: 1px solid #d6d8db; }
+
+        /* 搜尋結果顯示 */
+        .results-container { width: 100%; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; display: none; table-layout: fixed; }
+        @media (min-width: 768px) { table { display: table; } }
+        th { background-color: var(--primary); color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: top; }
+        th:first-child { width: 180px; }
+
+        /* 手機卡片 */
+        .mobile-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        @media (min-width: 768px) { .mobile-cards-list { display: none; } }
+        .card-header { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 0.8rem; color: #777; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .card-header strong { color: #333; font-size: 0.9rem; margin-bottom: 2px; }
+        .card-body { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+        /* 儲存格 */
+        .cell-box { padding: 6px 12px; background: #f8f9fa; color: #333; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.95rem; word-break: break-all; min-width: 20px; }
+        .cell-box.match-highlight { background: #fff3cd; color: #856404; border-color: #ffeeba; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .file-badge { display: inline-block; background: #6c757d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-section">
+        <h2>📊 跨平台萬用搜尋器 (APP版)</h2>
+    </div>
+    
+    <div class="input-group">
+        <div class="input-item">
+            <label>1. 增加檔案 (目前已載入 <span id="fileCount">0</span> 個)</label>
+            <input type="file" id="upload" multiple accept=".xlsx, .xls, .csv">
+        </div>
+        <div class="input-item">
+            <label>2. 搜尋關鍵字</label>
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <input type="text" id="keyword" placeholder="輸入、語音 🎤 或掃碼 📷...">
+                    <button id="voiceBtn" class="voice-btn">🎤</button>
+                </div>
+                <button id="scanBtn" class="scan-btn">📷 掃碼</button>
+            </div>
+            <div class="mode-switch">
+                <label class="switch-label">
+                    <input type="checkbox" id="forceFullMode"> 
+                    <span>強制顯示整列 (不隱藏無關人員)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status-bar">初始化系統...</div>
+
+    <div class="results-container">
+        <table id="desktopTable">
+            <thead>
+                <tr>
+                    <th>來源位置</th>
+                    <th>搜尋結果</th>
+                </tr>
+            </thead>
+            <tbody id="desktopBody"></tbody>
+        </table>
+        <div id="mobileList" class="mobile-cards-list"></div>
+    </div>
+</div>
+
+<!-- 掃描器 Modal -->
+<div id="reader-modal">
+    <div id="reader"></div>
+    <button class="close-scan-btn" id="closeScanBtn">❌ 取消掃描</button>
+</div>
+
+<script>
+    let allData = [];
+    let currentFileNames = [];
+    let db;
+    const DB_NAME = "StockUniversalDB";
+    const STORE_NAME = "FilesStore";
+
+    // 1. 初始化 IndexedDB
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" });
+    request.onsuccess = e => { db = e.target.result; loadStoredData(); };
+
+    function loadStoredData() {
+        const store = db.transaction([STORE_NAME], "readonly").objectStore(STORE_NAME);
+        const getRequest = store.get("currentFile");
+        getRequest.onsuccess = () => {
+            if (getRequest.result) {
+                allData = getRequest.result.data;
+                currentFileNames = getRequest.result.fileNames || [getRequest.result.fileName];
+                updateStatusUI();
+            } else {
+                showStatus("👋 請上傳 Excel/CSV 檔案開始使用。", false);
+            }
+        };
+    }
+
+    function updateStatusUI() {
+        document.getElementById('fileCount').innerText = currentFileNames.length;
+        const fileTags = currentFileNames.map(name => `<span class="file-list-tag">📄 ${name}</span>`).join("");
+        showStatus(`✅ 已就緒，共 ${currentFileNames.length} 個檔案：${fileTags}`, true);
+        triggerSearch();
+    }
+
+    function triggerSearch() {
+        if(document.getElementById('keyword').value.trim() !== "") {
+             document.getElementById('keyword').dispatchEvent(new Event('input'));
+        }
+    }
+
+    // 2. 檔案讀取 (累加模式)
+    document.getElementById('upload').addEventListener('change', async function(e) {
+        const newFiles = Array.from(e.target.files);
+        if (newFiles.length === 0) return;
+        
+        if (currentFileNames.length + newFiles.length > 5) {
+            alert(`⚠️ 檔案過多！系統限制最多 5 個檔案。請先「清空重來」。`);
+            e.target.value = "";
+            return;
+        }
+
+        showStatus("⏳ 正在讀取並合併檔案...", false);
+        const uniqueNewFiles = newFiles.filter(f => !currentFileNames.includes(f.name));
+
+        if (uniqueNewFiles.length === 0) {
+            alert("⚠️ 選擇的檔案都已經在清單中了。");
+            updateStatusUI();
+            e.target.value = "";
+            return;
+        }
+
+        let newParsedData = [];
+        let newNames = [];
+
+        const promises = uniqueNewFiles.map(file => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+                        let fileData = [];
+                        workbook.SheetNames.forEach(sheetName => {
+                            const sheet = workbook.Sheets[sheetName];
+                            const json = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
+                            json.forEach((row, idx) => {
+                                if (row.some(c => c !== "")) {
+                                    fileData.push({ 
+                                        fileName: file.name, 
+                                        sheet: sheetName, 
+                                        rowIdx: idx + 1, 
+                                        rowData: row, 
+                                        searchStr: row.join("|").toLowerCase() 
+                                    });
+                                }
+                            });
+                        });
+                        newNames.push(file.name);
+                        resolve(fileData);
+                    } catch (error) { reject(error); }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        });
+
+        try {
+            const results = await Promise.all(promises);
+            results.forEach(res => newParsedData = newParsedData.concat(res));
+            
+            allData = allData.concat(newParsedData);
+            currentFileNames = currentFileNames.concat(newNames);
+
+            const tx = db.transaction([STORE_NAME], "readwrite");
+            tx.objectStore(STORE_NAME).put({ id: "currentFile", fileNames: currentFileNames, data: allData });
+            
+            tx.oncomplete = () => { updateStatusUI(); e.target.value = ""; };
+        } catch (err) { 
+            console.error(err); 
+            showStatus("❌ 檔案處理失敗", false); 
+        }
+    });
+
+    const keywordInput = document.getElementById('keyword');
+    const forceFullModeCheckbox = document.getElementById('forceFullMode');
+    forceFullModeCheckbox.addEventListener('change', triggerSearch);
+
+    // 3. 語音搜尋
+    const voiceBtn = document.getElementById('voiceBtn');
+    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'zh-TW';
+        voiceBtn.addEventListener('click', () => { recognition.start(); voiceBtn.classList.add('active'); });
+        recognition.onresult = (e) => {
+            const res = e.results[0][0].transcript;
+            keywordInput.value = res;
+            triggerSearch();
+            showStatus(`🎤 語音搜尋：「${res}」`, true);
+        };
+        recognition.onspeechend = () => { recognition.stop(); voiceBtn.classList.remove('active'); };
+    }
+
+    // 4. 掃碼功能
+    const scanBtn = document.getElementById('scanBtn');
+    const readerModal = document.getElementById('reader-modal');
+    const closeScanBtn = document.getElementById('closeScanBtn');
+    let html5QrcodeScanner = null;
+
+    scanBtn.addEventListener('click', () => {
+        readerModal.style.display = 'flex';
+        if(html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+        }
+        
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+                rememberLastUsedCamera: true
+            },
+            /* verbose= */ false
+        );
+        
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    });
+
+    closeScanBtn.addEventListener('click', closeScanner);
+
+    function closeScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear().catch(err => console.error(err));
+        }
+        readerModal.style.display = 'none';
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        closeScanner();
+        keywordInput.value = decodedText;
+        triggerSearch();
+        showStatus(`📷 掃碼成功：「${decodedText}」`, true);
+        
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 800; 
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1); 
+        } catch(e) {}
+    }
+
+    function onScanFailure(error) {}
+
+    // 5. 核心搜尋
+    keywordInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+        const dBody = document.getElementById('desktopBody');
+        const mList = document.getElementById('mobileList');
+        const isForceFull = forceFullModeCheckbox.checked;
+
+        if (!query || allData.length === 0) {
+            document.getElementById('desktopTable').style.display = "none";
+            mList.innerHTML = "";
+            return;
+        }
+
+        let matched = allData.filter(item => item.searchStr.includes(query))
+                             .sort((a,b) => b.rowData.some(c => String(c).toLowerCase() === query) - a.rowData.some(c => String(c).toLowerCase() === query))
+                             .slice(0, 100);
+
+        dBody.innerHTML = "";
+        mList.innerHTML = "";
+
+        if (matched.length > 0) {
+            document.getElementById('desktopTable').style.display = window.innerWidth >= 768 ? "table" : "none";
+            
+            matched.forEach(res => {
+                const row = res.rowData;
+                const fileName = res.fileName.toLowerCase();
+                const useFullMode = isForceFull || fileName.endsWith('.csv');
+                let cellsHtml = "";
+
+                if (useFullMode) {
+                    cellsHtml = row.map(val => {
+                        let safeVal = (val === undefined || val === null) ? "" : String(val).trim();
+                        if (safeVal !== "") {
+                            const isMatch = safeVal.toLowerCase().includes(query);
+                            return `<div class="cell-box ${isMatch ? 'match-highlight' : ''}">${safeVal}</div>`;
+                        }
+                        return "";
+                    }).join("");
+                } else {
+                    let indicesToShow = new Set();
+                    const matchIndices = [];
+                    row.forEach((cell, idx) => {
+                        if (String(cell).toLowerCase().includes(query)) {
+                            matchIndices.push(idx);
+                        }
+                    });
+
+                    matchIndices.forEach(idx => {
+                        indicesToShow.add(idx);
+                        for (let i = 1; i <= 3; i++) {
+                            let target = idx - i;
+                            if (target < 0) break;
+                            let val = String(row[target]).trim();
+                            if (val === "" || val === "-" || val === "undefined") break; 
+                            indicesToShow.add(target);
+                        }
+                        for (let i = 1; i <= 3; i++) {
+                            let target = idx + i;
+                            if (target >= row.length) break;
+                            let val = String(row[target]).trim();
+                            if (val === "" || val === "-" || val === "undefined") break;
+                            indicesToShow.add(target);
+                        }
+                    });
+
+                    const sortedIndices = Array.from(indicesToShow).sort((a, b) => a - b);
+                    cellsHtml = sortedIndices.map(idx => {
+                        const val = row[idx];
+                        const isMatch = String(val).toLowerCase().includes(query);
+                        return `<div class="cell-box ${isMatch ? 'match-highlight' : ''}">${val}</div>`;
+                    }).join("");
+                }
+
+                const sourceInfo = `<span class="file-badge">📂 ${res.fileName}</span><br><small>${res.sheet}<br>第 ${res.rowIdx} 列</small>`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${sourceInfo}</td><td><div class="card-body">${cellsHtml}</div></td>`;
+                dBody.appendChild(tr);
+
+                const card = document.createElement('div');
+                card.className = "mobile-card";
+                card.innerHTML = `
+                    <div class="card-header">
+                        <strong>📂 ${res.fileName}</strong>
+                        <span>${res.sheet} / 第 ${res.rowIdx} 列</span>
+                    </div>
+                    <div class="card-body">${cellsHtml}</div>`;
+                mList.appendChild(card);
+            });
+        }
+    });
+
+    function deleteStoredData() {
+        if (!confirm("確定清空所有檔案並重新開始嗎？")) return;
+        db.transaction([STORE_NAME], "readwrite").objectStore(STORE_NAME).delete("currentFile");
+        allData = [];
+        currentFileNames = [];
+        location.reload();
+    }
+
+    function showStatus(text, hasData) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.className = hasData ? "status-bar success" : "status-bar";
+        statusDiv.innerHTML = `<span>${text}</span> ${hasData ? '<button class="btn-delete" onclick="deleteStoredData()">🗑️ 清空重來</button>' : ''}`;
+    }
+
+    // === PWA Service Worker 註冊 ===
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker Registered'))
+            .catch(err => console.log('Service Worker Failed', err));
+        });
+    }
+</script>
+
+</body>
+</html>
