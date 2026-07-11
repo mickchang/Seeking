@@ -11,6 +11,7 @@
     
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
         :root { --primary: #007bff; --bg: #f4f7f9; --text: #333; }
@@ -28,13 +29,13 @@
         .input-item { display: flex; flex-direction: column; gap: 5px; flex: 1; width: 100%; }
         label { font-size: 0.85rem; font-weight: bold; color: #555; }
         
-        /* 搜尋框與語音按鈕 */
+        /* 搜尋框與功能按鈕 */
         .search-container { display: flex; gap: 8px; width: 100%; align-items: center; }
         .search-wrapper { position: relative; display: flex; align-items: center; flex: 1; }
         input[type="text"] { width: 100%; padding: 12px 50px 12px 12px; border: 2px solid var(--primary); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         
-        .voice-btn { position: absolute; right: 5px; background: none; border: none; cursor: pointer; font-size: 24px; padding: 8px; transition: 0.3s; z-index: 5; }
-        .voice-btn.active { color: #dc3545; animation: pulse 1.5s infinite; }
+        .ocr-btn { position: absolute; right: 5px; background: none; border: none; cursor: pointer; font-size: 24px; padding: 8px; transition: 0.3s; z-index: 5; }
+        .ocr-btn.active { color: #dc3545; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         /* 掃碼按鈕 */
@@ -94,8 +95,9 @@
             <label>2. 搜尋關鍵字</label>
             <div class="search-container">
                 <div class="search-wrapper">
-                    <input type="text" id="keyword" placeholder="輸入、語音 🎤 或掃碼 📷...">
-                    <button id="voiceBtn" class="voice-btn">🎤</button>
+                    <input type="text" id="keyword" placeholder="輸入、拍照辨識 🔍 或掃碼 📷...">
+                    <button id="ocrBtn" class="ocr-btn" title="拍照辨識文字">🔍</button>
+                    <input type="file" id="ocrFileInput" accept="image/*" capture="environment" style="display:none;">
                 </div>
                 <button id="scanBtn" class="scan-btn">📷 掃碼</button>
             </div>
@@ -245,20 +247,43 @@
     const forceFullModeCheckbox = document.getElementById('forceFullMode');
     forceFullModeCheckbox.addEventListener('change', triggerSearch);
 
-    // 3. 語音搜尋
-    const voiceBtn = document.getElementById('voiceBtn');
-    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'zh-TW';
-        voiceBtn.addEventListener('click', () => { recognition.start(); voiceBtn.classList.add('active'); });
-        recognition.onresult = (e) => {
-            const res = e.results[0][0].transcript;
-            keywordInput.value = res;
-            triggerSearch();
-            showStatus(`🎤 語音搜尋：「${res}」`, true);
-        };
-        recognition.onspeechend = () => { recognition.stop(); voiceBtn.classList.remove('active'); };
-    }
+    // 3. 文字識別搜尋 (拍照 OCR)
+    const ocrBtn = document.getElementById('ocrBtn');
+    const ocrFileInput = document.getElementById('ocrFileInput');
+
+    ocrBtn.addEventListener('click', () => {
+        ocrFileInput.click();
+    });
+
+    ocrFileInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        ocrBtn.classList.add('active');
+        showStatus("🔍 正在辨識圖片文字，請稍候...", false);
+
+        try {
+            const { data: { text } } = await Tesseract.recognize(file, 'chi_tra+eng', {
+                logger: () => {}
+            });
+
+            const cleaned = text.replace(/\s+/g, ' ').trim();
+
+            if (cleaned) {
+                keywordInput.value = cleaned;
+                triggerSearch();
+                showStatus(`🔍 文字辨識成功：「${cleaned}」`, true);
+            } else {
+                showStatus("⚠️ 未辨識到任何文字，請再試一次。", false);
+            }
+        } catch (err) {
+            console.error(err);
+            showStatus("❌ 文字辨識失敗，請再試一次。", false);
+        } finally {
+            ocrBtn.classList.remove('active');
+            ocrFileInput.value = "";
+        }
+    });
 
     // 4. 掃碼功能
     const scanBtn = document.getElementById('scanBtn');
@@ -434,3 +459,4 @@
 
 </body>
 </html>
+
