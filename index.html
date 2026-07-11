@@ -32,10 +32,12 @@
         /* 搜尋框與功能按鈕 */
         .search-container { display: flex; gap: 8px; width: 100%; align-items: center; }
         .search-wrapper { position: relative; display: flex; align-items: center; flex: 1; }
-        input[type="text"] { width: 100%; padding: 12px 50px 12px 12px; border: 2px solid var(--primary); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        input[type="text"] { width: 100%; padding: 12px 90px 12px 12px; border: 2px solid var(--primary); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         
-        .ocr-btn { position: absolute; right: 5px; background: none; border: none; cursor: pointer; font-size: 24px; padding: 8px; transition: 0.3s; z-index: 5; }
-        .ocr-btn.active { color: #dc3545; animation: pulse 1.5s infinite; }
+        .ocr-btn, .voice-btn { position: absolute; background: none; border: none; cursor: pointer; font-size: 22px; padding: 6px; transition: 0.3s; z-index: 5; }
+        .ocr-btn { right: 5px; }
+        .voice-btn { right: 42px; }
+        .ocr-btn.active, .voice-btn.active { color: #dc3545; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         /* 掃碼按鈕 */
@@ -46,6 +48,23 @@
         #reader-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
         #reader { width: 90%; max-width: 500px; background: white; border-radius: 12px; padding: 10px; overflow: hidden; }
         .close-scan-btn { margin-top: 20px; padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; }
+
+        /* 文字辨識裁切 Modal */
+        #ocr-crop-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
+        .ocr-hint { color: #fff; font-size: 0.9rem; margin-bottom: 10px; text-align: center; padding: 0 10px; }
+        .ocr-hint b { color: #ffc107; }
+        #ocrImageContainer { position: relative; max-width: 100%; max-height: 65vh; touch-action: none; user-select: none; line-height: 0; }
+        #ocrPreviewImg { max-width: 100%; max-height: 65vh; display: block; }
+        #ocrCropBox { position: absolute; border: 2px solid #ffc107; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); cursor: move; touch-action: none; }
+        .crop-handle { position: absolute; width: 22px; height: 22px; background: #ffc107; border: 2px solid #fff; border-radius: 50%; touch-action: none; }
+        .crop-handle.tl { top: -12px; left: -12px; cursor: nwse-resize; }
+        .crop-handle.tr { top: -12px; right: -12px; cursor: nesw-resize; }
+        .crop-handle.bl { bottom: -12px; left: -12px; cursor: nesw-resize; }
+        .crop-handle.br { bottom: -12px; right: -12px; cursor: nwse-resize; }
+        .ocr-crop-controls { display: flex; gap: 12px; margin-top: 20px; }
+        .ocr-crop-controls button { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.05rem; font-weight: bold; }
+        #ocrConfirmBtn { background: #28a745; color: white; }
+        #ocrCancelBtn { background: #dc3545; color: white; }
 
         /* 模式切換開關 */
         .mode-switch { display: flex; align-items: center; gap: 10px; margin-top: 5px; font-size: 0.9rem; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #ddd; width: fit-content; }
@@ -95,7 +114,8 @@
             <label>2. 搜尋關鍵字</label>
             <div class="search-container">
                 <div class="search-wrapper">
-                    <input type="text" id="keyword" placeholder="輸入、拍照辨識 🔍 或掃碼 📷...">
+                    <input type="text" id="keyword" placeholder="輸入、語音 🎤、拍照辨識 🔍 或掃碼 📷...">
+                    <button id="voiceBtn" class="voice-btn" title="語音輸入">🎤</button>
                     <button id="ocrBtn" class="ocr-btn" title="拍照辨識文字">🔍</button>
                     <input type="file" id="ocrFileInput" accept="image/*" capture="environment" style="display:none;">
                 </div>
@@ -130,6 +150,24 @@
 <div id="reader-modal">
     <div id="reader"></div>
     <button class="close-scan-btn" id="closeScanBtn">❌ 取消掃描</button>
+</div>
+
+<!-- 文字辨識裁切 Modal -->
+<div id="ocr-crop-modal">
+    <div class="ocr-hint">請拖曳/縮放黃框，<b>只框住編號文字</b>（例如 MIC5114Y-4895），框越小、越貼合文字，辨識越準確</div>
+    <div id="ocrImageContainer">
+        <img id="ocrPreviewImg" src="">
+        <div id="ocrCropBox">
+            <div class="crop-handle tl" data-handle="tl"></div>
+            <div class="crop-handle tr" data-handle="tr"></div>
+            <div class="crop-handle bl" data-handle="bl"></div>
+            <div class="crop-handle br" data-handle="br"></div>
+        </div>
+    </div>
+    <div class="ocr-crop-controls">
+        <button id="ocrCancelBtn">❌ 取消</button>
+        <button id="ocrConfirmBtn">✅ 確認辨識</button>
+    </div>
 </div>
 
 <script>
@@ -213,7 +251,8 @@
                                         sheet: sheetName, 
                                         rowIdx: idx + 1, 
                                         rowData: row, 
-                                        searchStr: row.join("|").toLowerCase() 
+                                        searchStr: row.join("|").toLowerCase(),
+                                        searchStrNormalized: row.join("|").toLowerCase().replace(/[-_,.\s]/g, "")
                                     });
                                 }
                             });
@@ -247,45 +286,196 @@
     const forceFullModeCheckbox = document.getElementById('forceFullMode');
     forceFullModeCheckbox.addEventListener('change', triggerSearch);
 
-    // 3. 文字識別搜尋 (拍照 OCR)
+    // 3. 語音搜尋
+    const voiceBtn = document.getElementById('voiceBtn');
+    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'zh-TW';
+        voiceBtn.addEventListener('click', () => { recognition.start(); voiceBtn.classList.add('active'); });
+        recognition.onresult = (e) => {
+            const res = e.results[0][0].transcript;
+            keywordInput.value = res;
+            triggerSearch();
+            showStatus(`🎤 語音搜尋：「${res}」（減號、逗號、空格會自動忽略，不用特別念出來）`, true);
+        };
+        recognition.onspeechend = () => { recognition.stop(); voiceBtn.classList.remove('active'); };
+    } else {
+        voiceBtn.style.display = 'none';
+    }
+
+    // 4. 文字識別搜尋 (拍照 OCR + 框選裁切)
     const ocrBtn = document.getElementById('ocrBtn');
     const ocrFileInput = document.getElementById('ocrFileInput');
+    const ocrCropModal = document.getElementById('ocr-crop-modal');
+    const ocrImageContainer = document.getElementById('ocrImageContainer');
+    const ocrPreviewImg = document.getElementById('ocrPreviewImg');
+    const ocrCropBox = document.getElementById('ocrCropBox');
+    const ocrConfirmBtn = document.getElementById('ocrConfirmBtn');
+    const ocrCancelBtn = document.getElementById('ocrCancelBtn');
+
+    let cropState = { x: 0, y: 0, w: 0, h: 0 };
+    let dragMode = null; // 'move' | 'tl' | 'tr' | 'bl' | 'br'
+    let dragStart = { x: 0, y: 0 };
+    let boxStart = { x: 0, y: 0, w: 0, h: 0 };
 
     ocrBtn.addEventListener('click', () => {
         ocrFileInput.click();
     });
 
-    ocrFileInput.addEventListener('change', async function(e) {
+    ocrFileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
 
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            ocrPreviewImg.src = evt.target.result;
+            ocrPreviewImg.onload = () => {
+                ocrCropModal.style.display = 'flex';
+                initCropBox();
+            };
+        };
+        reader.readAsDataURL(file);
+        ocrFileInput.value = "";
+    });
+
+    function initCropBox() {
+        // 預設框選圖片中央一小段區域，方便使用者微調
+        const cw = ocrImageContainer.clientWidth;
+        const ch = ocrImageContainer.clientHeight;
+        const w = cw * 0.7;
+        const h = Math.min(ch * 0.22, 90);
+        const x = (cw - w) / 2;
+        const y = (ch - h) / 2;
+        setCropBox(x, y, w, h);
+    }
+
+    function setCropBox(x, y, w, h) {
+        const cw = ocrImageContainer.clientWidth;
+        const ch = ocrImageContainer.clientHeight;
+        w = Math.max(30, Math.min(w, cw));
+        h = Math.max(20, Math.min(h, ch));
+        x = Math.max(0, Math.min(x, cw - w));
+        y = Math.max(0, Math.min(y, ch - h));
+        cropState = { x, y, w, h };
+        ocrCropBox.style.left = x + 'px';
+        ocrCropBox.style.top = y + 'px';
+        ocrCropBox.style.width = w + 'px';
+        ocrCropBox.style.height = h + 'px';
+    }
+
+    function getPointer(e) {
+        const p = e.touches ? e.touches[0] : e;
+        return { x: p.clientX, y: p.clientY };
+    }
+
+    function onDragStart(e, mode) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragMode = mode;
+        dragStart = getPointer(e);
+        boxStart = { ...cropState };
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('touchmove', onDragMove, { passive: false });
+        document.addEventListener('mouseup', onDragEnd);
+        document.addEventListener('touchend', onDragEnd);
+    }
+
+    function onDragMove(e) {
+        if (!dragMode) return;
+        e.preventDefault();
+        const p = getPointer(e);
+        const dx = p.x - dragStart.x;
+        const dy = p.y - dragStart.y;
+
+        if (dragMode === 'move') {
+            setCropBox(boxStart.x + dx, boxStart.y + dy, boxStart.w, boxStart.h);
+        } else if (dragMode === 'br') {
+            setCropBox(boxStart.x, boxStart.y, boxStart.w + dx, boxStart.h + dy);
+        } else if (dragMode === 'bl') {
+            setCropBox(boxStart.x + dx, boxStart.y, boxStart.w - dx, boxStart.h + dy);
+        } else if (dragMode === 'tr') {
+            setCropBox(boxStart.x, boxStart.y + dy, boxStart.w + dx, boxStart.h - dy);
+        } else if (dragMode === 'tl') {
+            setCropBox(boxStart.x + dx, boxStart.y + dy, boxStart.w - dx, boxStart.h - dy);
+        }
+    }
+
+    function onDragEnd() {
+        dragMode = null;
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        document.removeEventListener('touchend', onDragEnd);
+    }
+
+    ocrCropBox.addEventListener('mousedown', (e) => { if (e.target === ocrCropBox) onDragStart(e, 'move'); });
+    ocrCropBox.addEventListener('touchstart', (e) => { if (e.target === ocrCropBox) onDragStart(e, 'move'); }, { passive: false });
+    ocrCropBox.querySelectorAll('.crop-handle').forEach(handle => {
+        const mode = handle.dataset.handle;
+        handle.addEventListener('mousedown', (e) => onDragStart(e, mode));
+        handle.addEventListener('touchstart', (e) => onDragStart(e, mode), { passive: false });
+    });
+
+    ocrCancelBtn.addEventListener('click', () => {
+        ocrCropModal.style.display = 'none';
+    });
+
+    ocrConfirmBtn.addEventListener('click', async () => {
+        ocrCropModal.style.display = 'none';
         ocrBtn.classList.add('active');
-        showStatus("🔍 正在辨識圖片文字，請稍候...", false);
+        showStatus("🔍 正在辨識框選文字，請稍候...", false);
 
         try {
-            const { data: { text } } = await Tesseract.recognize(file, 'chi_tra+eng', {
-                logger: () => {}
+            // 計算裁切區域對應原始圖片的實際像素座標
+            const scaleX = ocrPreviewImg.naturalWidth / ocrImageContainer.clientWidth;
+            const scaleY = ocrPreviewImg.naturalHeight / ocrImageContainer.clientHeight;
+            const sx = cropState.x * scaleX;
+            const sy = cropState.y * scaleY;
+            const sw = cropState.w * scaleX;
+            const sh = cropState.h * scaleY;
+
+            // 放大 3 倍 + 灰階 + 二值化，強化小段編號文字辨識率
+            const UPSCALE = 3;
+            const canvas = document.createElement('canvas');
+            canvas.width = sw * UPSCALE;
+            canvas.height = sh * UPSCALE;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(ocrPreviewImg, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+                const bw = gray > 140 ? 255 : 0; // 二值化，去除背景雜訊
+                d[i] = d[i+1] = d[i+2] = bw;
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+                logger: () => {},
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-',
+                tessedit_pageseg_mode: '7' // 單行文字模式
             });
 
-            const cleaned = text.replace(/\s+/g, ' ').trim();
+            let cleaned = text.replace(/\s+/g, '').trim().toUpperCase();
 
             if (cleaned) {
                 keywordInput.value = cleaned;
                 triggerSearch();
-                showStatus(`🔍 文字辨識成功：「${cleaned}」`, true);
+                showStatus(`🔍 辨識結果：「${cleaned}」（如不正確可直接手動修改搜尋框）`, true);
             } else {
-                showStatus("⚠️ 未辨識到任何文字，請再試一次。", false);
+                showStatus("⚠️ 未辨識到文字，請重新框選再試一次。", false);
             }
         } catch (err) {
             console.error(err);
             showStatus("❌ 文字辨識失敗，請再試一次。", false);
         } finally {
             ocrBtn.classList.remove('active');
-            ocrFileInput.value = "";
         }
     });
 
-    // 4. 掃碼功能
+    // 5. 掃碼功能
     const scanBtn = document.getElementById('scanBtn');
     const readerModal = document.getElementById('reader-modal');
     const closeScanBtn = document.getElementById('closeScanBtn');
@@ -342,9 +532,10 @@
 
     function onScanFailure(error) {}
 
-    // 5. 核心搜尋
+    // 6. 核心搜尋
     keywordInput.addEventListener('input', function(e) {
         const query = e.target.value.trim().toLowerCase();
+        const queryNormalized = query.replace(/[-_,.\s]/g, "");
         const dBody = document.getElementById('desktopBody');
         const mList = document.getElementById('mobileList');
         const isForceFull = forceFullModeCheckbox.checked;
@@ -355,7 +546,12 @@
             return;
         }
 
-        let matched = allData.filter(item => item.searchStr.includes(query))
+        // 同時比對「原始字串」與「去除減號/逗號/空格後的字串」，
+        // 這樣語音輸入念不出減號、或拍照/打字漏打符號時，一樣能搜尋得到
+        let matched = allData.filter(item =>
+                                item.searchStr.includes(query) ||
+                                (queryNormalized && item.searchStrNormalized.includes(queryNormalized))
+                             )
                              .sort((a,b) => b.rowData.some(c => String(c).toLowerCase() === query) - a.rowData.some(c => String(c).toLowerCase() === query))
                              .slice(0, 100);
 
@@ -459,4 +655,3 @@
 
 </body>
 </html>
-
