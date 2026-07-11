@@ -1,11 +1,12 @@
-const CACHE_NAME = 'search-app-v2';
+const CACHE_NAME = 'search-app-v3';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   './icon.png',
   'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js',
-  'https://unpkg.com/html5-qrcode'
+  'https://unpkg.com/html5-qrcode',
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 ];
 
 self.addEventListener('install', event => {
