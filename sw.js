@@ -1,4 +1,4 @@
-const CACHE_NAME = 'search-app-v6';
+const CACHE_NAME = 'search-app-v7';
 const urlsToCache = [
   './',
   './index.html',
