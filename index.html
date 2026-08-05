@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>跨平台搜尋器</title>
+    <title>跨平台搜尋器與盤點系統</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
@@ -18,39 +18,43 @@
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; padding: 10px; background-color: var(--bg); color: var(--text); margin: 0; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         
-        /* 標題與按鈕區 */
         .header-section { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); margin-bottom: 15px; padding-bottom: 10px; }
         h2 { margin: 0; font-size: 1.4rem; color: var(--primary); }
 
-        /* 輸入區佈局 */
         .input-group { display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px; background: #ebf3ff; padding: 15px; border-radius: 10px; }
-        @media (min-width: 768px) { .input-group { flex-direction: row; align-items: flex-end; } }
-        
         .input-item { display: flex; flex-direction: column; gap: 5px; flex: 1; width: 100%; }
         label { font-size: 0.85rem; font-weight: bold; color: #555; }
         
-        /* 搜尋框與功能按鈕 */
+        /* 搜尋與按鈕區 */
         .search-container { display: flex; gap: 8px; width: 100%; align-items: center; }
         .search-wrapper { position: relative; display: flex; align-items: center; flex: 1; }
         input[type="text"] { width: 100%; padding: 12px 90px 12px 12px; border: 2px solid var(--primary); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         
+        /* 盤點設定專用輸入框 */
+        .inv-inputs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .inv-inputs input { border: 1px solid #ccc; padding: 10px; font-size: 14px; flex: 1; min-width: 80px; }
+        .inv-inputs input#gasUrl { flex: 100%; border-color: #007bff; background: #f8faff; }
+
         .ocr-btn, .voice-btn { position: absolute; background: none; border: none; cursor: pointer; font-size: 22px; padding: 6px; transition: 0.3s; z-index: 5; }
         .ocr-btn { right: 5px; }
         .voice-btn { right: 42px; }
         .ocr-btn.active, .voice-btn.active { color: #dc3545; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        /* 掃碼按鈕 */
         .scan-btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 0 15px; height: 48px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; white-space: nowrap; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .scan-btn:active { transform: scale(0.98); }
 
-        /* 掃描器 Modal (滿版蓋台) */
-        #reader-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
-        #reader { width: 90%; max-width: 500px; background: white; border-radius: 12px; padding: 10px; overflow: hidden; }
-        .close-scan-btn { margin-top: 20px; padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; }
+        /* 盤點按鈕與區塊 */
+        .inv-action-area { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc; display: flex; gap: 10px; align-items: center; }
+        .btn-inv { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-inv.found { background: #28a745; }
+        .btn-inv.missing { background: #dc3545; }
+        .btn-inv:active { transform: scale(0.95); }
 
-        /* 文字辨識裁切 Modal */
-        #ocr-crop-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
+        /* Modal (掃描與裁切) */
+        #reader-modal, #ocr-crop-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        #reader { width: 90%; max-width: 500px; background: white; border-radius: 12px; padding: 10px; overflow: hidden; }
+        .close-scan-btn { margin-top: 20px; padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;}
         .ocr-hint { color: #fff; font-size: 0.9rem; margin-bottom: 10px; text-align: center; padding: 0 10px; }
         .ocr-hint b { color: #ffc107; }
         #ocrImageContainer { position: relative; max-width: 100%; max-height: 65vh; touch-action: none; user-select: none; line-height: 0; }
@@ -66,33 +70,23 @@
         #ocrConfirmBtn { background: #28a745; color: white; }
         #ocrCancelBtn { background: #dc3545; color: white; }
 
-        /* 模式切換開關 */
         .mode-switch { display: flex; align-items: center; gap: 10px; margin-top: 5px; font-size: 0.9rem; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #ddd; width: fit-content; }
-        .switch-label { font-weight: bold; color: var(--primary); cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        input[type="checkbox"] { transform: scale(1.2); }
-
-        /* 狀態列 */
         .status-bar { margin-bottom: 15px; padding: 10px; border-radius: 8px; font-size: 0.9rem; background: #fff; border-left: 5px solid #ccc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .success { border-left-color: #28a745; background-color: #f0fff4; }
         .btn-delete { background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
         .file-list-tag { display: inline-block; background: #e2e6ea; padding: 2px 6px; border-radius: 4px; margin: 2px; font-size: 0.8rem; color: #555; border: 1px solid #d6d8db; }
 
-        /* 搜尋結果顯示 */
         .results-container { width: 100%; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; display: none; table-layout: fixed; }
         @media (min-width: 768px) { table { display: table; } }
         th { background-color: var(--primary); color: white; padding: 12px; text-align: left; }
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: top; }
         th:first-child { width: 180px; }
-
-        /* 手機卡片 */
         .mobile-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         @media (min-width: 768px) { .mobile-cards-list { display: none; } }
         .card-header { display: flex; flex-direction: column; margin-bottom: 8px; font-size: 0.8rem; color: #777; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .card-header strong { color: #333; font-size: 0.9rem; margin-bottom: 2px; }
         .card-body { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-
-        /* 儲存格 */
         .cell-box { padding: 6px 12px; background: #f8f9fa; color: #333; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.95rem; word-break: break-all; min-width: 20px; }
         .cell-box.match-highlight { background: #fff3cd; color: #856404; border-color: #ffeeba; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .file-badge { display: inline-block; background: #6c757d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 4px; }
@@ -102,7 +96,7 @@
 
 <div class="container">
     <div class="header-section">
-        <h2>📊 跨平台萬用搜尋器 (APP版)</h2>
+        <h2>📊 跨平台萬用搜尋器與盤點</h2>
     </div>
     
     <div class="input-group">
@@ -110,8 +104,20 @@
             <label>1. 增加檔案 (目前已載入 <span id="fileCount">0</span> 個)</label>
             <input type="file" id="upload" multiple accept=".xlsx, .xls, .csv">
         </div>
+        
+        <!-- 盤點設定與限制區塊 -->
         <div class="input-item">
-            <label>2. 搜尋關鍵字</label>
+            <label>2. 盤點設定 (將依此過濾清單並隨盤點資料回寫)</label>
+            <div class="inv-inputs">
+                <input type="text" id="invDept" placeholder="部門別 (選填)">
+                <input type="text" id="invName" placeholder="保管人 (選填)">
+                <input type="text" id="invLoc" placeholder="存放位置註記 (選填)">
+                <input type="text" id="gasUrl" placeholder="🔗 貼上您的 Google Apps Script 網址以啟用回寫功能">
+            </div>
+        </div>
+
+        <div class="input-item">
+            <label>3. 搜尋關鍵字 (結合上述盤點設定進行過濾)</label>
             <div class="search-container">
                 <div class="search-wrapper">
                     <input type="text" id="keyword" placeholder="輸入、語音 🎤、拍照辨識 🔍 或掃碼 📷...">
@@ -136,8 +142,8 @@
         <table id="desktopTable">
             <thead>
                 <tr>
-                    <th>來源位置</th>
-                    <th>搜尋結果</th>
+                    <th>來源與狀態</th>
+                    <th>資產內容</th>
                 </tr>
             </thead>
             <tbody id="desktopBody"></tbody>
@@ -154,7 +160,7 @@
 
 <!-- 文字辨識裁切 Modal -->
 <div id="ocr-crop-modal">
-    <div class="ocr-hint">請拖曳/縮放黃框，<b>只框住編號文字</b>（例如 MIC5114Y-4895），框越小、越貼合文字，辨識越準確</div>
+    <div class="ocr-hint">請拖曳/縮放黃框，<b>只框住編號文字</b></div>
     <div id="ocrImageContainer">
         <img id="ocrPreviewImg" src="">
         <div id="ocrCropBox">
@@ -177,7 +183,16 @@
     const DB_NAME = "StockUniversalDB";
     const STORE_NAME = "FilesStore";
 
-    // 1. 初始化 IndexedDB
+    // 初始化儲存盤點設定
+    ['invDept', 'invName', 'invLoc', 'gasUrl'].forEach(id => {
+        const el = document.getElementById(id);
+        if (localStorage.getItem(id)) el.value = localStorage.getItem(id);
+        el.addEventListener('input', () => {
+            localStorage.setItem(id, el.value);
+            triggerSearch(); // 部門與保管人異動時，即時重刷過濾
+        });
+    });
+
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" });
     request.onsuccess = e => { db = e.target.result; loadStoredData(); };
@@ -209,25 +224,20 @@
         }
     }
 
-    // 2. 檔案讀取 (累加模式)
+    // 檔案讀取 (增加 uid 供盤點回寫定位)
     document.getElementById('upload').addEventListener('change', async function(e) {
         const newFiles = Array.from(e.target.files);
         if (newFiles.length === 0) return;
-        
         if (currentFileNames.length + newFiles.length > 5) {
             alert(`⚠️ 檔案過多！系統限制最多 5 個檔案。請先「清空重來」。`);
-            e.target.value = "";
-            return;
+            e.target.value = ""; return;
         }
 
         showStatus("⏳ 正在讀取並合併檔案...", false);
         const uniqueNewFiles = newFiles.filter(f => !currentFileNames.includes(f.name));
-
         if (uniqueNewFiles.length === 0) {
             alert("⚠️ 選擇的檔案都已經在清單中了。");
-            updateStatusUI();
-            e.target.value = "";
-            return;
+            updateStatusUI(); e.target.value = ""; return;
         }
 
         let newParsedData = [];
@@ -247,6 +257,7 @@
                             json.forEach((row, idx) => {
                                 if (row.some(c => c !== "")) {
                                     fileData.push({ 
+                                        uid: Date.now().toString(36) + Math.random().toString(36).substr(2),
                                         fileName: file.name, 
                                         sheet: sheetName, 
                                         rowIdx: idx + 1, 
@@ -268,17 +279,13 @@
         try {
             const results = await Promise.all(promises);
             results.forEach(res => newParsedData = newParsedData.concat(res));
-            
             allData = allData.concat(newParsedData);
             currentFileNames = currentFileNames.concat(newNames);
-
             const tx = db.transaction([STORE_NAME], "readwrite");
             tx.objectStore(STORE_NAME).put({ id: "currentFile", fileNames: currentFileNames, data: allData });
-            
             tx.oncomplete = () => { updateStatusUI(); e.target.value = ""; };
         } catch (err) { 
-            console.error(err); 
-            showStatus("❌ 檔案處理失敗", false); 
+            console.error(err); showStatus("❌ 檔案處理失敗", false); 
         }
     });
 
@@ -286,24 +293,24 @@
     const forceFullModeCheckbox = document.getElementById('forceFullMode');
     forceFullModeCheckbox.addEventListener('change', triggerSearch);
 
-    // 3. 語音搜尋
+    // 語音與OCR及掃碼功能 (保留原樣)
+    // --- 語音 ---
     const voiceBtn = document.getElementById('voiceBtn');
     if (window.SpeechRecognition || window.webkitSpeechRecognition) {
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = 'zh-TW';
         voiceBtn.addEventListener('click', () => { recognition.start(); voiceBtn.classList.add('active'); });
         recognition.onresult = (e) => {
-            const res = e.results[0][0].transcript;
-            keywordInput.value = res;
+            keywordInput.value = e.results[0][0].transcript;
             triggerSearch();
-            showStatus(`🎤 語音搜尋：「${res}」（減號、逗號、空格會自動忽略，不用特別念出來）`, true);
+            showStatus(`🎤 語音搜尋：「${keywordInput.value}」`, true);
         };
         recognition.onspeechend = () => { recognition.stop(); voiceBtn.classList.remove('active'); };
     } else {
         voiceBtn.style.display = 'none';
     }
 
-    // 4. 文字識別搜尋 (拍照 OCR + 框選裁切)
+    // --- OCR 裁切邏輯 ---
     const ocrBtn = document.getElementById('ocrBtn');
     const ocrFileInput = document.getElementById('ocrFileInput');
     const ocrCropModal = document.getElementById('ocr-crop-modal');
@@ -314,168 +321,87 @@
     const ocrCancelBtn = document.getElementById('ocrCancelBtn');
 
     let cropState = { x: 0, y: 0, w: 0, h: 0 };
-    let dragMode = null; // 'move' | 'tl' | 'tr' | 'bl' | 'br'
-    let dragStart = { x: 0, y: 0 };
-    let boxStart = { x: 0, y: 0, w: 0, h: 0 };
+    let dragMode = null; let dragStart = { x: 0, y: 0 }; let boxStart = { x: 0, y: 0, w: 0, h: 0 };
 
-    ocrBtn.addEventListener('click', () => {
-        ocrFileInput.click();
-    });
-
+    ocrBtn.addEventListener('click', () => ocrFileInput.click());
     ocrFileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
+        if (!e.target.files[0]) return;
         const reader = new FileReader();
         reader.onload = function(evt) {
             ocrPreviewImg.src = evt.target.result;
             ocrPreviewImg.onload = () => {
                 ocrCropModal.style.display = 'flex';
-                initCropBox();
+                const cw = ocrImageContainer.clientWidth; const ch = ocrImageContainer.clientHeight;
+                const w = cw * 0.7; const h = Math.min(ch * 0.22, 90);
+                setCropBox((cw - w) / 2, (ch - h) / 2, w, h);
             };
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(e.target.files[0]);
         ocrFileInput.value = "";
     });
 
-    function initCropBox() {
-        // 預設框選圖片中央一小段區域，方便使用者微調
-        const cw = ocrImageContainer.clientWidth;
-        const ch = ocrImageContainer.clientHeight;
-        const w = cw * 0.7;
-        const h = Math.min(ch * 0.22, 90);
-        const x = (cw - w) / 2;
-        const y = (ch - h) / 2;
-        setCropBox(x, y, w, h);
-    }
-
     function setCropBox(x, y, w, h) {
-        const cw = ocrImageContainer.clientWidth;
-        const ch = ocrImageContainer.clientHeight;
-        w = Math.max(30, Math.min(w, cw));
-        h = Math.max(20, Math.min(h, ch));
-        x = Math.max(0, Math.min(x, cw - w));
-        y = Math.max(0, Math.min(y, ch - h));
+        const cw = ocrImageContainer.clientWidth; const ch = ocrImageContainer.clientHeight;
+        w = Math.max(30, Math.min(w, cw)); h = Math.max(20, Math.min(h, ch));
+        x = Math.max(0, Math.min(x, cw - w)); y = Math.max(0, Math.min(y, ch - h));
         cropState = { x, y, w, h };
-        ocrCropBox.style.left = x + 'px';
-        ocrCropBox.style.top = y + 'px';
-        ocrCropBox.style.width = w + 'px';
-        ocrCropBox.style.height = h + 'px';
+        ocrCropBox.style.left = x + 'px'; ocrCropBox.style.top = y + 'px';
+        ocrCropBox.style.width = w + 'px'; ocrCropBox.style.height = h + 'px';
     }
 
-    function getPointer(e) {
-        const p = e.touches ? e.touches[0] : e;
-        return { x: p.clientX, y: p.clientY };
-    }
-
+    function getPointer(e) { const p = e.touches ? e.touches[0] : e; return { x: p.clientX, y: p.clientY }; }
     function onDragStart(e, mode) {
-        e.preventDefault();
-        e.stopPropagation();
-        dragMode = mode;
-        dragStart = getPointer(e);
-        boxStart = { ...cropState };
-        document.addEventListener('mousemove', onDragMove);
-        document.addEventListener('touchmove', onDragMove, { passive: false });
-        document.addEventListener('mouseup', onDragEnd);
-        document.addEventListener('touchend', onDragEnd);
+        e.preventDefault(); e.stopPropagation(); dragMode = mode; dragStart = getPointer(e); boxStart = { ...cropState };
+        document.addEventListener('mousemove', onDragMove); document.addEventListener('touchmove', onDragMove, { passive: false });
+        document.addEventListener('mouseup', onDragEnd); document.addEventListener('touchend', onDragEnd);
     }
-
     function onDragMove(e) {
-        if (!dragMode) return;
-        e.preventDefault();
-        const p = getPointer(e);
-        const dx = p.x - dragStart.x;
-        const dy = p.y - dragStart.y;
-
-        if (dragMode === 'move') {
-            setCropBox(boxStart.x + dx, boxStart.y + dy, boxStart.w, boxStart.h);
-        } else if (dragMode === 'br') {
-            setCropBox(boxStart.x, boxStart.y, boxStart.w + dx, boxStart.h + dy);
-        } else if (dragMode === 'bl') {
-            setCropBox(boxStart.x + dx, boxStart.y, boxStart.w - dx, boxStart.h + dy);
-        } else if (dragMode === 'tr') {
-            setCropBox(boxStart.x, boxStart.y + dy, boxStart.w + dx, boxStart.h - dy);
-        } else if (dragMode === 'tl') {
-            setCropBox(boxStart.x + dx, boxStart.y + dy, boxStart.w - dx, boxStart.h - dy);
-        }
+        if (!dragMode) return; e.preventDefault();
+        const dx = getPointer(e).x - dragStart.x; const dy = getPointer(e).y - dragStart.y;
+        if (dragMode === 'move') setCropBox(boxStart.x + dx, boxStart.y + dy, boxStart.w, boxStart.h);
+        else if (dragMode === 'br') setCropBox(boxStart.x, boxStart.y, boxStart.w + dx, boxStart.h + dy);
+        else if (dragMode === 'bl') setCropBox(boxStart.x + dx, boxStart.y, boxStart.w - dx, boxStart.h + dy);
+        else if (dragMode === 'tr') setCropBox(boxStart.x, boxStart.y + dy, boxStart.w + dx, boxStart.h - dy);
+        else if (dragMode === 'tl') setCropBox(boxStart.x + dx, boxStart.y + dy, boxStart.w - dx, boxStart.h - dy);
     }
-
-    function onDragEnd() {
-        dragMode = null;
-        document.removeEventListener('mousemove', onDragMove);
-        document.removeEventListener('touchmove', onDragMove);
-        document.removeEventListener('mouseup', onDragEnd);
-        document.removeEventListener('touchend', onDragEnd);
-    }
-
+    function onDragEnd() { dragMode = null; document.removeEventListener('mousemove', onDragMove); document.removeEventListener('touchmove', onDragMove); document.removeEventListener('mouseup', onDragEnd); document.removeEventListener('touchend', onDragEnd); }
+    
     ocrCropBox.addEventListener('mousedown', (e) => { if (e.target === ocrCropBox) onDragStart(e, 'move'); });
     ocrCropBox.addEventListener('touchstart', (e) => { if (e.target === ocrCropBox) onDragStart(e, 'move'); }, { passive: false });
     ocrCropBox.querySelectorAll('.crop-handle').forEach(handle => {
-        const mode = handle.dataset.handle;
-        handle.addEventListener('mousedown', (e) => onDragStart(e, mode));
-        handle.addEventListener('touchstart', (e) => onDragStart(e, mode), { passive: false });
+        handle.addEventListener('mousedown', (e) => onDragStart(e, handle.dataset.handle));
+        handle.addEventListener('touchstart', (e) => onDragStart(e, handle.dataset.handle), { passive: false });
     });
-
-    ocrCancelBtn.addEventListener('click', () => {
-        ocrCropModal.style.display = 'none';
-    });
+    ocrCancelBtn.addEventListener('click', () => ocrCropModal.style.display = 'none');
 
     ocrConfirmBtn.addEventListener('click', async () => {
-        ocrCropModal.style.display = 'none';
-        ocrBtn.classList.add('active');
+        ocrCropModal.style.display = 'none'; ocrBtn.classList.add('active');
         showStatus("🔍 正在辨識框選文字，請稍候...", false);
-
         try {
-            // 計算裁切區域對應原始圖片的實際像素座標
             const scaleX = ocrPreviewImg.naturalWidth / ocrImageContainer.clientWidth;
             const scaleY = ocrPreviewImg.naturalHeight / ocrImageContainer.clientHeight;
-            const sx = cropState.x * scaleX;
-            const sy = cropState.y * scaleY;
-            const sw = cropState.w * scaleX;
-            const sh = cropState.h * scaleY;
-
-            // 放大 3 倍 + 灰階 + 二值化，強化小段編號文字辨識率
-            const UPSCALE = 3;
-            const canvas = document.createElement('canvas');
-            canvas.width = sw * UPSCALE;
-            canvas.height = sh * UPSCALE;
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = true;
-            ctx.drawImage(ocrPreviewImg, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const d = imgData.data;
+            const UPSCALE = 3; const canvas = document.createElement('canvas');
+            canvas.width = cropState.w * scaleX * UPSCALE; canvas.height = cropState.h * scaleY * UPSCALE;
+            const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(ocrPreviewImg, cropState.x * scaleX, cropState.y * scaleY, cropState.w * scaleX, cropState.h * scaleY, 0, 0, canvas.width, canvas.height);
+            
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height); const d = imgData.data;
             for (let i = 0; i < d.length; i += 4) {
                 const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-                const bw = gray > 140 ? 255 : 0; // 二值化，去除背景雜訊
-                d[i] = d[i+1] = d[i+2] = bw;
+                d[i] = d[i+1] = d[i+2] = gray > 140 ? 255 : 0;
             }
             ctx.putImageData(imgData, 0, 0);
 
-            const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
-                logger: () => {},
-                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-',
-                tessedit_pageseg_mode: '7' // 單行文字模式
-            });
-
+            const { data: { text } } = await Tesseract.recognize(canvas, 'eng', { logger: () => {}, tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-', tessedit_pageseg_mode: '7' });
             let cleaned = text.replace(/\s+/g, '').trim().toUpperCase();
-
             if (cleaned) {
-                keywordInput.value = cleaned;
-                triggerSearch();
-                showStatus(`🔍 辨識結果：「${cleaned}」（如不正確可直接手動修改搜尋框）`, true);
-            } else {
-                showStatus("⚠️ 未辨識到文字，請重新框選再試一次。", false);
-            }
-        } catch (err) {
-            console.error(err);
-            showStatus("❌ 文字辨識失敗，請再試一次。", false);
-        } finally {
-            ocrBtn.classList.remove('active');
-        }
+                keywordInput.value = cleaned; triggerSearch();
+                showStatus(`🔍 辨識結果：「${cleaned}」`, true);
+            } else { showStatus("⚠️ 未辨識到文字，請重新嘗試。", false); }
+        } catch (err) { showStatus("❌ 辨識失敗", false); } finally { ocrBtn.classList.remove('active'); }
     });
 
-    // 5. 掃碼功能
+    // --- 掃碼 ---
     const scanBtn = document.getElementById('scanBtn');
     const readerModal = document.getElementById('reader-modal');
     const closeScanBtn = document.getElementById('closeScanBtn');
@@ -483,80 +409,53 @@
 
     scanBtn.addEventListener('click', () => {
         readerModal.style.display = 'flex';
-        if(html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
-        }
-        
-        html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", 
-            { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0,
-                rememberLastUsedCamera: true
-            },
-            /* verbose= */ false
-        );
-        
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        if(html5QrcodeScanner) html5QrcodeScanner.clear();
+        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, rememberLastUsedCamera: true }, false);
+        html5QrcodeScanner.render(decodedText => {
+            closeScanner(); keywordInput.value = decodedText; triggerSearch();
+            showStatus(`📷 掃碼成功：「${decodedText}」`, true);
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'sine'; osc.frequency.value = 800; gain.gain.setValueAtTime(0.1, ctx.currentTime); 
+                osc.start(); osc.stop(ctx.currentTime + 0.1); 
+            } catch(e) {}
+        }, () => {});
     });
-
     closeScanBtn.addEventListener('click', closeScanner);
+    function closeScanner() { if(html5QrcodeScanner) html5QrcodeScanner.clear(); readerModal.style.display = 'none'; }
 
-    function closeScanner() {
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear().catch(err => console.error(err));
-        }
-        readerModal.style.display = 'none';
-    }
 
-    function onScanSuccess(decodedText, decodedResult) {
-        closeScanner();
-        keywordInput.value = decodedText;
-        triggerSearch();
-        showStatus(`📷 掃碼成功：「${decodedText}」`, true);
-        
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 800; 
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.1); 
-        } catch(e) {}
-    }
-
-    function onScanFailure(error) {}
-
-    // 6. 核心搜尋
+    // 核心搜尋 + 條件過濾 + 盤點回寫按鈕渲染
     keywordInput.addEventListener('input', function(e) {
         const query = e.target.value.trim().toLowerCase();
         const queryNormalized = query.replace(/[-_,.\s]/g, "");
+        const deptFilter = document.getElementById('invDept').value.trim().toLowerCase();
+        const nameFilter = document.getElementById('invName').value.trim().toLowerCase();
         const dBody = document.getElementById('desktopBody');
         const mList = document.getElementById('mobileList');
         const isForceFull = forceFullModeCheckbox.checked;
 
         if (!query || allData.length === 0) {
-            document.getElementById('desktopTable').style.display = "none";
-            mList.innerHTML = "";
-            return;
+            document.getElementById('desktopTable').style.display = "none"; mList.innerHTML = ""; return;
         }
 
-        // 同時比對「原始字串」與「去除減號/逗號/空格後的字串」，
-        // 這樣語音輸入念不出減號、或拍照/打字漏打符號時，一樣能搜尋得到
-        let matched = allData.filter(item =>
-                                item.searchStr.includes(query) ||
-                                (queryNormalized && item.searchStrNormalized.includes(queryNormalized))
-                             )
-                             .sort((a,b) => b.rowData.some(c => String(c).toLowerCase() === query) - a.rowData.some(c => String(c).toLowerCase() === query))
-                             .slice(0, 100);
+        let matched = allData.filter(item => {
+            // 1. 關鍵字比對
+            const matchKeyword = item.searchStr.includes(query) || (queryNormalized && item.searchStrNormalized.includes(queryNormalized));
+            if (!matchKeyword) return false;
+            
+            // 2. 部門與姓名過濾 (若使用者有填寫，則強制限縮範圍)
+            if (deptFilter && !item.searchStr.includes(deptFilter)) return false;
+            if (nameFilter && !item.searchStr.includes(nameFilter)) return false;
+            
+            return true;
+        })
+        .sort((a,b) => b.rowData.some(c => String(c).toLowerCase() === query) - a.rowData.some(c => String(c).toLowerCase() === query))
+        .slice(0, 100);
 
-        dBody.innerHTML = "";
-        mList.innerHTML = "";
+        dBody.innerHTML = ""; mList.innerHTML = "";
 
         if (matched.length > 0) {
             document.getElementById('desktopTable').style.display = window.innerWidth >= 768 ? "table" : "none";
@@ -570,50 +469,35 @@
                 if (useFullMode) {
                     cellsHtml = row.map(val => {
                         let safeVal = (val === undefined || val === null) ? "" : String(val).trim();
-                        if (safeVal !== "") {
-                            const isMatch = safeVal.toLowerCase().includes(query);
-                            return `<div class="cell-box ${isMatch ? 'match-highlight' : ''}">${safeVal}</div>`;
-                        }
+                        if (safeVal !== "") return `<div class="cell-box ${safeVal.toLowerCase().includes(query) ? 'match-highlight' : ''}">${safeVal}</div>`;
                         return "";
                     }).join("");
                 } else {
                     let indicesToShow = new Set();
-                    const matchIndices = [];
                     row.forEach((cell, idx) => {
                         if (String(cell).toLowerCase().includes(query)) {
-                            matchIndices.push(idx);
+                            indicesToShow.add(idx);
+                            for(let i=1; i<=3; i++) {
+                                if(idx-i>=0 && String(row[idx-i]).trim()!=="" && String(row[idx-i]).trim()!=="-") indicesToShow.add(idx-i);
+                                if(idx+i<row.length && String(row[idx+i]).trim()!=="" && String(row[idx+i]).trim()!=="-") indicesToShow.add(idx+i);
+                            }
                         }
                     });
-
-                    matchIndices.forEach(idx => {
-                        indicesToShow.add(idx);
-                        for (let i = 1; i <= 3; i++) {
-                            let target = idx - i;
-                            if (target < 0) break;
-                            let val = String(row[target]).trim();
-                            if (val === "" || val === "-" || val === "undefined") break; 
-                            indicesToShow.add(target);
-                        }
-                        for (let i = 1; i <= 3; i++) {
-                            let target = idx + i;
-                            if (target >= row.length) break;
-                            let val = String(row[target]).trim();
-                            if (val === "" || val === "-" || val === "undefined") break;
-                            indicesToShow.add(target);
-                        }
-                    });
-
-                    const sortedIndices = Array.from(indicesToShow).sort((a, b) => a - b);
-                    cellsHtml = sortedIndices.map(idx => {
-                        const val = row[idx];
-                        const isMatch = String(val).toLowerCase().includes(query);
-                        return `<div class="cell-box ${isMatch ? 'match-highlight' : ''}">${val}</div>`;
-                    }).join("");
+                    cellsHtml = Array.from(indicesToShow).sort((a,b)=>a-b).map(idx => `<div class="cell-box ${String(row[idx]).toLowerCase().includes(query) ? 'match-highlight' : ''}">${row[idx]}</div>`).join("");
                 }
 
+                // 產生盤點按鈕區塊
+                const actionHtml = `
+                    <div class="inv-action-area">
+                        <button class="btn-inv found" onclick="submitInventory('${res.uid}', '盤有')">✅ 盤有</button>
+                        <button class="btn-inv missing" onclick="submitInventory('${res.uid}', '盤缺')">❌ 盤缺</button>
+                    </div>
+                `;
+
                 const sourceInfo = `<span class="file-badge">📂 ${res.fileName}</span><br><small>${res.sheet}<br>第 ${res.rowIdx} 列</small>`;
+                
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${sourceInfo}</td><td><div class="card-body">${cellsHtml}</div></td>`;
+                tr.innerHTML = `<td>${sourceInfo}</td><td><div class="card-body">${cellsHtml}</div>${actionHtml}</td>`;
                 dBody.appendChild(tr);
 
                 const card = document.createElement('div');
@@ -623,18 +507,75 @@
                         <strong>📂 ${res.fileName}</strong>
                         <span>${res.sheet} / 第 ${res.rowIdx} 列</span>
                     </div>
-                    <div class="card-body">${cellsHtml}</div>`;
+                    <div class="card-body">${cellsHtml}</div>
+                    ${actionHtml}
+                `;
                 mList.appendChild(card);
             });
         }
     });
 
+    // --- 盤點資料回寫至 Google Apps Script ---
+    async function submitInventory(uid, status) {
+        const gasUrl = document.getElementById('gasUrl').value.trim();
+        if (!gasUrl) {
+            alert("⚠️ 請先在畫面上方的「盤點設定」區塊貼上您的 Google Apps Script 網址！");
+            document.getElementById('gasUrl').focus();
+            return;
+        }
+
+        const dept = document.getElementById('invDept').value.trim();
+        const name = document.getElementById('invName').value.trim();
+        const location = document.getElementById('invLoc').value.trim();
+        
+        // 從資料庫中找回這筆資料
+        const item = allData.find(d => d.uid === uid);
+        if (!item) return alert("找不到該筆資料");
+
+        const payload = {
+            status: status,
+            department: dept,
+            custodian: name,
+            locationNote: location,
+            fileName: item.fileName,
+            sheet: item.sheet,
+            rowIdx: item.rowIdx,
+            rowData: item.rowData.join(" | ") // 將該列資料串成文字方便在試算表閱讀
+        };
+
+        const originalText = document.activeElement ? document.activeElement.innerText : "";
+        showStatus(`🔄 正在寫入「${status}」紀錄至 Google 雲端...`, false);
+
+        try {
+            // 使用無跨域限制的標準 POST
+            const res = await fetch(gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            
+            if (result.status === 'success') {
+                showStatus(`✅ 成功寫入雲端！ (狀態: ${status})`, true);
+                // 播放短暫成功音效
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator(); osc.connect(ctx.destination);
+                    osc.frequency.value = 1200; osc.start(); osc.stop(ctx.currentTime + 0.1); 
+                } catch(e){}
+            } else {
+                throw new Error(result.msg);
+            }
+        } catch(e) {
+            showStatus(`❌ 寫入失敗，請檢查網址或網路。錯誤: ${e.message}`, false);
+            alert("寫入失敗，請確認 GAS 網址正確且具有權限。");
+        }
+    }
+
     function deleteStoredData() {
         if (!confirm("確定清空所有檔案並重新開始嗎？")) return;
         db.transaction([STORE_NAME], "readwrite").objectStore(STORE_NAME).delete("currentFile");
-        allData = [];
-        currentFileNames = [];
-        location.reload();
+        allData = []; currentFileNames = []; location.reload();
     }
 
     function showStatus(text, hasData) {
@@ -643,13 +584,8 @@
         statusDiv.innerHTML = `<span>${text}</span> ${hasData ? '<button class="btn-delete" onclick="deleteStoredData()">🗑️ 清空重來</button>' : ''}`;
     }
 
-    // === PWA Service Worker 註冊 ===
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker Registered'))
-            .catch(err => console.log('Service Worker Failed', err));
-        });
+        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
     }
 </script>
 
