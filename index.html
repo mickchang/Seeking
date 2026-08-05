@@ -548,11 +548,12 @@
 
         try {
             // 使用無跨域限制的標準 POST
-            const res = await fetch(gasUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
+           const res = await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload), // 👈 注意這裡要加逗號
+        redirect: 'follow'             // 👈 加上這行這張最重要的通行證！
+    });
             const result = await res.json();
             
             if (result.status === 'success') {
