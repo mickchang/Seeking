@@ -540,7 +540,7 @@
             fileName: item.fileName,
             sheet: item.sheet,
             rowIdx: item.rowIdx,
-            rowData: item.rowData.join(" | ") // 將該列資料串成文字方便在試算表閱讀
+           rowData: item.rowData.filter(cell => String(cell).trim() !== '未盤').join(" | ") // 將該列資料串成文字，並自動過濾未盤
         };
 
         const originalText = document.activeElement ? document.activeElement.innerText : "";
